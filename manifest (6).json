@@ -1,0 +1,16 @@
+{
+  "background_color": "#ffffff",
+  "dir": "auto",
+  "display": "standalone",
+  "name": "winter-arc-os.",
+  "orientation": "portrait",
+  "scope": "https://winter-arc-os.onrender.com",
+  "short_name": "winter-arc-",
+  "start_url": "https://winter-arc-os.onrender.com",
+  "theme_color": "#080b12",
+  "lang": "en",
+  "display_override": [
+    "standalone",
+    "window-controls-overlay"
+  ]
+}
