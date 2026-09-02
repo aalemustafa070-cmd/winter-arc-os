@@ -1,16 +1,14 @@
 {
-  "background_color": "#ffffff",
-  "dir": "auto",
-  "display": "standalone",
   "name": "winter-arc-os.",
-  "orientation": "portrait",
-  "scope": "https://winter-arc-os.onrender.com/",
   "short_name": "winter-arc",
-  "start_url": "https://winter-arc-os.onrender.com/",
-  "theme_color": "#080b12",
   "description": "Winter Arc OS - Daily discipline and progress tracker",
+  "start_url": "https://winter-arc-os.onrender.com/",
+  "scope": "https://winter-arc-os.onrender.com/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#080b12",
   "lang": "en",
-  "categories": [
-    "education"
-  ]
+  "dir": "auto",
+  "categories": ["education"]
 }
