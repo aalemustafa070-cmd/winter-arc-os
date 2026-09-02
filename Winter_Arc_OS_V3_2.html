@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Winter Arc OS V3.2 — Full AI Quiz</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080b12;color:#eef2ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{max-width:900px;margin:auto;padding:18px 14px 60px}.hero{padding:20px;border:1px solid #222a3a;border-radius:22px;background:linear-gradient(145deg,#111827,#0b1020);box-shadow:0 10px 35px #0005}
+h1{margin:0 0 6px;font-size:28px}.muted{color:#9ca8bd}.tabs{display:flex;gap:8px;overflow:auto;margin:14px 0}.tab,button{border:0;border-radius:12px;padding:11px 14px;background:#1a2232;color:#fff;font-weight:700}.tab.active,button.primary{background:#6d5dfc}.card{margin-top:12px;padding:16px;border:1px solid #232c3d;border-radius:18px;background:#0e1420}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media(max-width:600px){.grid{grid-template-columns:1fr}}
+label{font-size:13px;color:#aab5c8}input,select,textarea{width:100%;margin-top:6px;padding:12px;border-radius:11px;border:1px solid #30394d;background:#0a0f18;color:#fff;font:inherit}textarea{min-height:90px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#192235;color:#b9c5dc;font-size:12px}.timer{font-size:46px;font-weight:800;text-align:center;padding:18px}.q{padding:14px;border:1px solid #263149;border-radius:14px;margin:10px 0}.option{display:block;width:100%;text-align:left;margin:7px 0;background:#151d2d}.option.selected{outline:2px solid #6d5dfc}.good{color:#70e1a1}.bad{color:#ff8f9f}.source{font-size:12px;color:#8ea1bd}.hidden{display:none}.bar{height:9px;background:#1b2435;border-radius:20px;overflow:hidden}.bar>i{display:block;height:100%;background:#6d5dfc}.score{font-size:32px;font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="pill">WINTER ARC OS • V3.2</div>
+    <h1>Full AI Verification</h1>
+    <div class="muted">Target → Focus → Web research → AI quiz → Verify → Improve</div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="target">Target</button>
+    <button class="tab" data-tab="study">Study</button>
+    <button class="tab" data-tab="quiz">AI Quiz</button>
+    <button class="tab" data-tab="stats">Stats</button>
+  </div>
+
+  <section id="target" class="page">
+    <div class="card">
+      <h2>Create target</h2>
+      <div class="grid">
+        <div><label>What do you want to achieve?</label><input id="goal" placeholder="e.g. Learn photosynthesis"></div>
+        <div><label>Topic / chapter</label><input id="topic" placeholder="e.g. Photosynthesis"></div>
+        <div><label>Planned study minutes</label><input id="mins" type="number" value="60" min="5"></div>
+        <div><label>Difficulty</label><select id="difficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option></select></div>
+      </div>
+      <button class="primary" id="saveTarget" style="margin-top:12px">Save target</button>
+      <div id="targetList"></div>
+    </div>
+  </section>
+
+  <section id="study" class="page hidden">
+    <div class="card">
+      <h2>Focused study</h2>
+      <div class="muted" id="activeTarget">Choose a target first.</div>
+      <div class="timer" id="timer">00:00:00</div>
+      <div class="row"><button class="primary" id="start">Start</button><button id="stop">Finish & verify</button></div>
+      <p class="muted">Only time recorded by this timer counts as verified study time. It cannot prove what happened outside the app.</p>
+    </div>
+  </section>
+
+  <section id="quiz" class="page hidden">
+    <div class="card">
+      <h2>AI-generated verification quiz</h2>
+      <div class="muted">The server researches the topic and asks the AI to create questions from the retrieved sources.</div>
+      <div class="row" style="margin-top:12px"><button class="primary" id="generate">Research + Generate Quiz</button><span id="status" class="pill">Ready</span></div>
+      <div id="quizBox"></div>
+    </div>
+  </section>
+
+  <section id="stats" class="page hidden">
+    <div class="card"><h2>Verification stats</h2><div id="statsBox"></div></div>
+  </section>
+</div>
+
+<script>
+const KEY='wa32';
+let state=JSON.parse(localStorage.getItem(KEY)||'{"targets":[],"sessions":[],"quizzes":[]}');
+let activeId=null, startedAt=null, timerHandle=null, quiz=null;
+
+const $=id=>document.getElementById(id);
+function save(){localStorage.setItem(KEY,JSON.stringify(state));renderTargets();renderStats();}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+function renderTargets(){
+  $('targetList').innerHTML=state.targets.length?state.targets.map(t=>`<div class="card" style="margin-top:10px">
+  <b>${esc(t.goal)}</b><div class="muted">${esc(t.topic)} • ${t.minutes} min • ${t.difficulty}</div>
+  <button onclick="activate('${t.id}')" style="margin-top:9px">${activeId===t.id?'Active':'Use for study'}</button></div>`).join(''):'<p class="muted">No targets yet.</p>';
+}
+function activate(id){activeId=id;const t=state.targets.find(x=>x.id===id);$('activeTarget').textContent=t?`${t.goal} — ${t.topic}`:'Choose a target first.';renderTargets();show('study');}
+function show(tab){document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));$(tab).classList.remove('hidden');document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+
+$('saveTarget').onclick=()=>{const goal=$('goal').value.trim(),topic=$('topic').value.trim();if(!goal||!topic)return alert('Goal aur topic dono bharo.');state.targets.push({id:crypto.randomUUID(),goal,topic,minutes:+$('mins').value||60,difficulty:$('difficulty').value,created:new Date().toISOString()});$('goal').value='';$('topic').value='';save();};
+$('start').onclick=()=>{if(!activeId)return alert('Pehle target select karo.');if(startedAt)return;startedAt=Date.now();timerHandle=setInterval(tick,500);tick();};
+$('stop').onclick=()=>{if(!startedAt)return alert('Timer start karo.');const seconds=Math.floor((Date.now()-startedAt)/1000);clearInterval(timerHandle);startedAt=null;timerHandle=null;state.sessions.push({id:crypto.randomUUID(),targetId:activeId,seconds,ended:new Date().toISOString()});save();$('status').textContent=`Session recorded: ${Math.floor(seconds/60)} min`;show('quiz');};
+function tick(){let s=Math.floor((Date.now()-startedAt)/1000);$('timer').textContent=new Date(s*1000).toISOString().substr(11,8);}
+$('generate').onclick=async()=>{const t=state.targets.find(x=>x.id===activeId);if(!t)return alert('Pehle target select karo.');$('status').textContent='Researching + generating…';$('quizBox').innerHTML='';try{
+ const r=await fetch('/api/generate-quiz',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:t.topic,goal:t.goal,difficulty:t.difficulty,count:8})});
+ const data=await r.json();if(!r.ok)throw new Error(data.error||'Server error');quiz=data;$('status').textContent='Quiz ready';renderQuiz();
+}catch(e){$('status').textContent='Error';$('quizBox').innerHTML=`<p class="bad">${esc(e.message)}</p><p class="muted">Make sure the AI server is running and the API key is configured.</p>`;}};
+function renderQuiz(){$('quizBox').innerHTML=`<div class="card"><div class="muted">${esc(quiz.topic)} • ${quiz.questions.length} questions</div>${quiz.questions.map((q,i)=>`<div class="q"><b>${i+1}. ${esc(q.question)}</b>${q.options.map((o,j)=>`<button class="option" data-i="${i}" data-j="${j}" onclick="pick(${i},${j},this)">${String.fromCharCode(65+j)}. ${esc(o)}</button>`).join('')}<div id="ex${i}" class="muted"></div></div>`).join('')}<button class="primary" onclick="submitQuiz()">Submit quiz</button></div>`;}
+function pick(i,j,el){document.querySelectorAll(`.option[data-i="${i}"]`).forEach(x=>x.classList.remove('selected'));el.classList.add('selected');el.dataset.choice=j;}
+function submitQuiz(){let score=0;quiz.questions.forEach((q,i)=>{const el=document.querySelector(`.option[data-i="${i}"].selected`);const chosen=el?+el.dataset.j:-1;const box=$(`ex${i}`);if(chosen===q.answer){score++;box.innerHTML='<span class="good">Correct</span> — '+esc(q.explanation);}else box.innerHTML='<span class="bad">Not correct</span> — '+esc(q.explanation);});state.quizzes.push({topic:quiz.topic,score,total:quiz.questions.length,at:new Date().toISOString(),sources:quiz.sources||[]});save();$('status').textContent=`Score ${score}/${quiz.questions.length}`;renderStats();}
+function renderStats(){const total=state.quizzes.reduce((a,q)=>a+q.total,0),sc=state.quizzes.reduce((a,q)=>a+q.score,0),sec=state.sessions.reduce((a,s)=>a+s.seconds,0);$('statsBox').innerHTML=`<div class="score">${total?Math.round(sc/total*100):0}%</div><p>AI quiz accuracy</p><div class="bar"><i style="width:${total?sc/total*100:0}%"></i></div><p>Recorded study: <b>${Math.floor(sec/60)} min</b></p><p>Sessions: <b>${state.sessions.length}</b> • Quizzes: <b>${state.quizzes.length}</b></p>${state.quizzes.slice(-5).reverse().map(q=>`<div class="q"><b>${esc(q.topic)}</b> — ${q.score}/${q.total}<br><span class="muted">${new Date(q.at).toLocaleString()}</span></div>`).join('')}`;}
+renderTargets();renderStats();
+</script>
+</body></html>
